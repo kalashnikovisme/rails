@@ -102,6 +102,7 @@ end
 
 class String
   BLANK_RE = /\A[[:space:]]*\z/
+  INVISIBLE_UNICODE_CHARS_RE = /\A{|\u2060|\u2061|\u2062|\u2063|\u180e|\u200b|\u200c|\u200d}*\z/
   ENCODED_BLANKS = Concurrent::Map.new do |h, enc|
     h[enc] = Regexp.new(BLANK_RE.source.encode(enc), BLANK_RE.options | Regexp::FIXEDENCODING)
   end
@@ -117,6 +118,31 @@ class String
   #
   #   "\u00a0".blank? # => true
   #
+  # Unicode `word joiner` character is supported:
+  #
+  #   "\u2060".blank? # => true
+  #
+  # Unicode `function application` character is supported:
+  #   "\u2061".blank? # => true
+  #
+  # Unicode `invisible times` character is supported:
+  #   "\u2062".blank? # => true
+  #
+  # Unicode `invisible separator` character is supported:
+  #   "\u2063".blank? # => true
+  #
+  # Unicode `mongolian vowel separator` character is supported:
+  #   "\u180e".blank? # => true
+  #
+  # Unicode `zero width space` character is supported:
+  #   "\u200b".blank? # => true
+  #
+  # Unicode `zero width non-joiner` character is supported:
+  #   "\u200c".blank? # => true
+  #
+  # Unicode `zero width joiner` character is supported:
+  #   "\u200d".blank? # => true
+  #
   # @return [true, false]
   def blank?
     # The regexp that matches blank strings is expensive. For the case of empty
@@ -124,7 +150,7 @@ class String
     # penalty for the rest of strings is marginal.
     empty? ||
       begin
-        BLANK_RE.match?(self)
+        BLANK_RE.match?(self) || INVISIBLE_UNICODE_CHARS_RE.match?(self)
       rescue Encoding::CompatibilityError
         ENCODED_BLANKS[self.encoding].match?(self)
       end
